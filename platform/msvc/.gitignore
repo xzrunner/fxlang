@@ -1,0 +1,8 @@
+fxlang/
+fxlang-test/
+projects/*
+
+!projects/fxlang.vcxproj
+!projects/fxlang.vcxproj.filters
+!projects/fxlang-test.vcxproj
+!projects/fxlang-test.vcxproj.filters
