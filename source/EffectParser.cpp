@@ -1,18 +1,19 @@
-#include "fxlang/Parser.h"
+#include "fxlang/EffectParser.h"
 
 #include <exception>
 
 namespace fxlang
 {
 
-Parser::Parser(const std::string& str)
-    : m_tokenizer(Tokenizer(str))
+EffectParser::EffectParser(const std::string& str)
+    : m_tokenizer(EffectTokenizer(str))
 {
+    m_func_last_pos = m_tokenizer.Begin();
 }
 
-void Parser::Parse()
+void EffectParser::Parse()
 {
-    Tokenizer::Token token = m_tokenizer.PeekToken();
+    EffectTokenizer::Token token = m_tokenizer.PeekToken();
     fxlang::Token::Type token_type = token.GetType();
     while (token_type != fxlang::Token::Eof)
     {
@@ -22,27 +23,41 @@ void Parser::Parse()
         case fxlang::Token::String:
         {
             auto str = token.Data();
-            if (str == "uniform") {
+            if (str == "uniform") 
+            {
+                FlushFuncCode();
                 ParseUniform();
                 advanced = true;
-            } else if (str == "texture") {
+                m_func_last_pos = m_tokenizer.CurPos();
+            } 
+            else if (str == "texture") 
+            {
+                FlushFuncCode();
                 ParseTexture();
                 advanced = true;
-            } else if (str == "technique") {
+                m_func_last_pos = m_tokenizer.CurPos();
+            } 
+            else if (str == "technique") 
+            {
+                FlushFuncCode();
                 ParseTechnique();
                 advanced = true;
+                m_func_last_pos = m_tokenizer.CurPos();
             }
         }
             break;
         case fxlang::Token::Pound:
         {
+            FlushFuncCode();
             Expect(fxlang::Token::Pound, token = m_tokenizer.NextToken());
             auto str = token.Data();
             if (strncmp(str.c_str(), "#include", strlen("include")) == 0) 
             {
                 auto filepath = str.substr(strlen("include") + 3);
                 filepath.pop_back();
-                m_includes.push_back(filepath);
+                m_effect.includes.push_back(filepath);
+
+                m_func_last_pos = m_tokenizer.CurPos();
             }
             advanced = true;
         }
@@ -56,19 +71,24 @@ void Parser::Parse()
         token = m_tokenizer.PeekToken();
         token_type = token.GetType();
     }
+
+    m_effect.functions.append(m_func_last_pos, m_tokenizer.End());
+
+    //printf("%s\n", m_functions.c_str());
 }
 
-void Parser::ParseUniform()
+void EffectParser::ParseUniform()
 {
     Uniform uniform;
 
-    Tokenizer::Token token;
+    EffectTokenizer::Token token;
     Expect(fxlang::Token::String, token = m_tokenizer.NextToken());
     assert(token.Data() == "uniform");
     uniform.var = ParseVariable();
 
-    if (m_tokenizer.NextToken().GetType() == fxlang::Token::OAngleBracket)
+    if (m_tokenizer.PeekToken().GetType() == fxlang::Token::OAngleBracket)
     {
+        m_tokenizer.NextToken();   // skip <
         while (m_tokenizer.PeekToken().GetType() != fxlang::Token::CAngleBracket)
         {
             Expect(fxlang::Token::String, token = m_tokenizer.NextToken());
@@ -140,18 +160,7 @@ void Parser::ParseUniform()
         uniform.var.i = std::atoi(token.Data().c_str());
         break;
     case VariableType::Bool:
-    {
-        Expect(fxlang::Token::String, token = m_tokenizer.NextToken());
-        auto str = token.Data();
-        if (str == "true") {
-            uniform.var.b = true;
-        } else if (str == "false") {
-            uniform.var.b = false;
-        } else {
-            assert(0);
-            throw std::runtime_error("Unknown type!");
-        }
-    }
+        uniform.var.b = ParseBool();
         break;
     case VariableType::Float:
         Expect(fxlang::Token::Decimal, token = m_tokenizer.NextToken());
@@ -189,22 +198,23 @@ void Parser::ParseUniform()
         break;
     }
 
-    m_uniforms.push_back(uniform);
+    m_effect.uniforms.push_back(uniform);
 }
 
-void Parser::ParseTexture()
+void EffectParser::ParseTexture()
 {
     Texture tex;
 
-    Tokenizer::Token token;
+    EffectTokenizer::Token token;
     Expect(fxlang::Token::String, token = m_tokenizer.NextToken());
     assert(token.Data() == "texture");
 
     Expect(fxlang::Token::String, token = m_tokenizer.NextToken());
     tex.name = token.Data();
 
-    if (m_tokenizer.NextToken().GetType() == fxlang::Token::OAngleBracket)
+    if (m_tokenizer.PeekToken().GetType() == fxlang::Token::OAngleBracket)
     {
+        m_tokenizer.NextToken();   // skip <
         while (m_tokenizer.PeekToken().GetType() != fxlang::Token::CAngleBracket)
         {
             Expect(fxlang::Token::String, token = m_tokenizer.NextToken());
@@ -288,14 +298,132 @@ void Parser::ParseTexture()
         }
     }
 
-    m_textures.push_back(tex);
+    m_effect.textures.push_back(tex);
 }
 
-Variable Parser::ParseVariable() const
+void EffectParser::ParseTechnique()
+{
+    Technique tech;
+
+    EffectTokenizer::Token token;
+    Expect(fxlang::Token::String, token = m_tokenizer.NextToken());
+    assert(token.Data() == "technique");
+
+    Expect(fxlang::Token::String, token = m_tokenizer.NextToken());
+    tech.name = token.Data();
+
+    if (m_tokenizer.PeekToken().GetType() == fxlang::Token::OAngleBracket)
+    {
+        m_tokenizer.NextToken();   // skip <
+        while (m_tokenizer.PeekToken().GetType() != fxlang::Token::CAngleBracket)
+        {
+            Expect(fxlang::Token::String, token = m_tokenizer.NextToken());
+            auto prop = token.Data();
+            if (prop == "enabled") 
+            {
+                Expect(fxlang::Token::Equal, token = m_tokenizer.NextToken());
+                tech.enabled = ParseBool();
+            } 
+            else if (prop == "timeout")
+            {
+                Expect(fxlang::Token::Equal, token = m_tokenizer.NextToken());
+                Expect(fxlang::Token::Integer, token = m_tokenizer.NextToken());
+                tech.timeout = std::atoi(token.Data().c_str());
+            }
+            else if (prop == "toggle")
+            {
+                Expect(fxlang::Token::Equal, token = m_tokenizer.NextToken());
+                Expect(fxlang::Token::Integer, token = m_tokenizer.NextToken());
+                tech.toggle = std::atoi(token.Data().c_str());
+            }
+            else if (prop == "togglectrl")
+            {
+                Expect(fxlang::Token::Equal, token = m_tokenizer.NextToken());
+                tech.togglectrl = ParseBool();
+            }
+            else if (prop == "toggleshift")
+            {
+                Expect(fxlang::Token::Equal, token = m_tokenizer.NextToken());
+                tech.toggleshift = ParseBool();
+            }
+            else if (prop == "togglealt")
+            {
+                Expect(fxlang::Token::Equal, token = m_tokenizer.NextToken());
+                tech.togglealt = ParseBool();
+            }
+            else if (prop == "hidden")
+            {
+                Expect(fxlang::Token::Equal, token = m_tokenizer.NextToken());
+                tech.hidden = ParseBool();
+            }
+            else if (prop == "ui_tooltip")
+            {
+                Expect(fxlang::Token::Equal, token = m_tokenizer.NextToken());
+                Expect(fxlang::Token::String, token = m_tokenizer.NextToken());
+                tech.ui_tooltip = token.Data();
+            }
+            else
+            {
+                assert(0);
+                throw std::runtime_error("Unknown type!");
+            }
+        }
+        token = m_tokenizer.NextToken(); // skip CAngleBracket
+    }
+
+    Expect(fxlang::Token::OBrace, token = m_tokenizer.NextToken());
+    while (m_tokenizer.PeekToken().GetType() != fxlang::Token::CBrace) {
+        ParsePass(tech);
+    }
+    m_tokenizer.NextToken(); // skip CBrace
+
+    m_effect.techniques.push_back(tech);
+}
+
+void EffectParser::ParsePass(Technique& tech)
+{
+    Pass pass;
+
+    EffectTokenizer::Token token;
+    Expect(fxlang::Token::String, token = m_tokenizer.NextToken());
+    assert(token.Data() == "pass");
+
+    Expect(fxlang::Token::String, token = m_tokenizer.NextToken());
+    pass.name = token.Data();
+
+    Expect(fxlang::Token::OBrace, token = m_tokenizer.NextToken());
+    while (m_tokenizer.PeekToken().GetType() != fxlang::Token::CBrace) 
+    {
+        Expect(fxlang::Token::String, token = m_tokenizer.NextToken());
+        auto prop = token.Data();
+        if (prop == "VertexShader") 
+        {
+            Expect(fxlang::Token::Equal, token = m_tokenizer.NextToken());
+            Expect(fxlang::Token::String, token = m_tokenizer.NextToken());
+            pass.vertex_shader = token.Data();
+        } 
+        else if (prop == "PixelShader")
+        {
+            Expect(fxlang::Token::Equal, token = m_tokenizer.NextToken());
+            Expect(fxlang::Token::String, token = m_tokenizer.NextToken());
+            pass.pixel_shader = token.Data();
+        }
+        else
+        {
+            assert(0);
+            throw std::runtime_error("Unknown type!");
+        }
+    }
+    token = m_tokenizer.NextToken(); // skip CBrace
+
+    tech.passes.push_back(pass);
+}
+
+Variable EffectParser::ParseVariable() const
 {
     Variable ret;
 
-    Tokenizer::Token token;
+    EffectTokenizer::Token token;
     Expect(fxlang::Token::String, token = m_tokenizer.NextToken());
     auto type_str = token.Data();
     if (type_str == "int") {
@@ -319,6 +447,32 @@ Variable Parser::ParseVariable() const
     ret.name = token.Data();
   
     return ret;
+}
+
+bool EffectParser::ParseBool() const
+{
+    EffectTokenizer::Token token;
+    Expect(fxlang::Token::String, token = m_tokenizer.NextToken());
+    auto str = token.Data();
+    if (str == "true") {
+        return true;
+    } else if (str == "false") {
+        return false;
+    } else {
+        assert(0);
+        throw std::runtime_error("Parse bool fail!");
+    }
+}
+
+void EffectParser::FlushFuncCode()
+{
+    auto curr = m_tokenizer.CurPos();
+    if (curr == m_func_last_pos) {
+        return;
+    }
+
+    m_effect.functions.append(m_func_last_pos, curr - m_func_last_pos + 1);
+    m_func_last_pos = curr;
 }
 
 }

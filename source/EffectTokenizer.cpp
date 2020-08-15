@@ -1,17 +1,17 @@
-#include "fxlang/Tokenizer.h"
+#include "fxlang/EffectTokenizer.h"
 
 #include <lexer/Exception.h>
 
 namespace fxlang
 {
 
-Tokenizer::Tokenizer(const std::string& str)
+EffectTokenizer::EffectTokenizer(const std::string& str)
     : lexer::Tokenizer<fxlang::Token::Type>(str.c_str(), str.c_str() + str.length(), "\"", '\\')
 {
 }
 
 lexer::Tokenizer<fxlang::Token::Type>::Token
-Tokenizer::EmitToken()
+EffectTokenizer::EmitToken()
 {
     while (!Eof())
 	{
@@ -143,7 +143,7 @@ Tokenizer::EmitToken()
     return Token(fxlang::Token::Eof, nullptr, nullptr, Length(), Line(), Column());
 }
 
-const std::string& Tokenizer::NumberDelim()
+const std::string& EffectTokenizer::NumberDelim()
 {
     static const std::string number_delim(Whitespace() + ")]};");
     return number_delim;

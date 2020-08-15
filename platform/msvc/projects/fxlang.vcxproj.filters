@@ -7,22 +7,44 @@
     <Filter Include="dataset">
       <UniqueIdentifier>{b3354a34-2955-434b-97ed-1cf19b2daece}</UniqueIdentifier>
     </Filter>
+    <Filter Include="generator">
+      <UniqueIdentifier>{0c456174-510f-4733-97fc-855d3dc84453}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tools">
+      <UniqueIdentifier>{74a2d7ab-0e19-4bd4-8dfb-e39a909a55fa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="parser\effect">
+      <UniqueIdentifier>{9c1e6295-0df3-4a12-a93b-82a4792f0d6b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="parser\shader">
+      <UniqueIdentifier>{103f1a39-a375-4000-824e-bb3ed6da3cba}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\source\Parser.cpp">
-      <Filter>parser</Filter>
+    <ClCompile Include="..\..\..\source\RegistRTTR.cpp">
+      <Filter>tools</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\source\Tokenizer.cpp">
-      <Filter>parser</Filter>
+    <ClCompile Include="..\..\..\source\FXLang.cpp" />
+    <ClCompile Include="..\..\..\source\EffectBuilder.cpp">
+      <Filter>generator</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\source\ShaderGenerator.cpp">
+      <Filter>generator</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\source\EffectTokenizer.cpp">
+      <Filter>parser\effect</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\source\EffectParser.cpp">
+      <Filter>parser\effect</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\source\ShaderParser.cpp">
+      <Filter>parser\shader</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\source\ShaderInfo.cpp">
+      <Filter>parser\shader</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\include\fxlang\Parser.h">
-      <Filter>parser</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\include\fxlang\Tokenizer.h">
-      <Filter>parser</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\include\fxlang\Uniform.h">
       <Filter>dataset</Filter>
     </ClInclude>
@@ -40,6 +62,28 @@
     </ClInclude>
     <ClInclude Include="..\..\..\include\fxlang\Technique.h">
       <Filter>dataset</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\fxlang\Effect.h">
+      <Filter>dataset</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\fxlang\FXLang.h" />
+    <ClInclude Include="..\..\..\include\fxlang\EffectBuilder.h">
+      <Filter>generator</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\fxlang\ShaderGenerator.h">
+      <Filter>generator</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\fxlang\EffectTokenizer.h">
+      <Filter>parser\effect</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\fxlang\EffectParser.h">
+      <Filter>parser\effect</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\fxlang\ShaderParser.h">
+      <Filter>parser\shader</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\fxlang\ShaderInfo.h">
+      <Filter>parser\shader</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

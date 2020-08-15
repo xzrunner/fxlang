@@ -1,14 +1,10 @@
 #include <fxlang/EffectParser.h>
 #include <fxlang/EffectBuilder.h>
 #include <fxlang/ShaderParser.h>
-#include <fxlang/ShaderGenerator.h>
-#include <fxlang/ShaderInfo.h>
 
 #include <catch/catch.hpp>
-#include <glslang/public/ShaderLang.h>
-#include <glslang/MachineIndependent/localintermediate.h>
 
-TEST_CASE("3DFX")
+TEST_CASE("reshade")
 {
     std::string str = R"(
 ////----------//
@@ -56,6 +52,9 @@ uniform float GAMMA_LEVEL < __UNIFORM_SLIDER_FLOAT1
 	#define	FILTCAPG (FILTCAP/2)
 #endif
 
+Texture2D back_buf_tex;
+SamplerState back_buf_sampler;
+
 float mod2(float x, float y)
 {
 	return x - y * floor (x/y);
@@ -69,7 +68,8 @@ float fmod(float a, float b)
 
 float4 PS_3DFX(float4 vpos : SV_Position, float2 texcoord : TEXCOORD) : SV_Target
 {
-	float4 colorInput = tex2D(ReShade::BackBuffer, texcoord);
+	//float4 colorInput = tex2D(ReShade::BackBuffer, texcoord);
+	float4 colorInput = back_buf_tex.Sample(back_buf_sampler, texcoord);
 
 	float2 res = BUFFER_SCREEN_SIZE;
 	
@@ -175,11 +175,15 @@ float4 PS_3DFX(float4 vpos : SV_Position, float2 texcoord : TEXCOORD) : SV_Targe
 
 float4 PS_3DFX1(float4 vpos : SV_Position, float2 texcoord : TEXCOORD) : SV_Target
 {
-   float4 colorInput = tex2D(ReShade::BackBuffer, texcoord);
+   //float4 colorInput = tex2D(ReShade::BackBuffer, texcoord);
+   float4 colorInput = back_buf_tex.Sample(back_buf_sampler, texcoord);
    float2 pixel = BUFFER_PIXEL_SIZE;
 
-	float3 pixel1 = tex2D(ReShade::BackBuffer, texcoord + float2((pixel.x), 0)).rgb;
-	float3 pixel2 = tex2D(ReShade::BackBuffer, texcoord + float2(-pixel.x, 0)).rgb;
+	//float3 pixel1 = tex2D(ReShade::BackBuffer, texcoord + float2((pixel.x), 0)).rgb;
+	//float3 pixel2 = tex2D(ReShade::BackBuffer, texcoord + float2(-pixel.x, 0)).rgb;
+	float3 pixel1 = back_buf_tex.Sample(back_buf_sampler, texcoord + float2(pixel.x, 0)).rgb;
+	float3 pixel2 = back_buf_tex.Sample(back_buf_sampler, texcoord + float2(-pixel.x, 0)).rgb;
+
 	float3 pixelblend;
 
 	// New filter
@@ -218,7 +222,8 @@ float4 PS_3DFX1(float4 vpos : SV_Position, float2 texcoord : TEXCOORD) : SV_Targ
 
 float4 PS_3DFX2(float4 vpos : SV_Position, float2 texcoord : TEXCOORD) : SV_Target
 {
-   float4 colorInput = tex2D(ReShade::BackBuffer, texcoord);
+   //float4 colorInput = tex2D(ReShade::BackBuffer, texcoord);
+   float4 colorInput = back_buf_tex.Sample(back_buf_sampler, texcoord);
 
 	// Gamma scanlines
 	// the Voodoo drivers usually supply a 1.3 gamma setting whether people liked it or not
@@ -275,22 +280,11 @@ technique LeiFx_Tech
 	REQUIRE(effect.techniques.size() == 1);
 	REQUIRE(effect.techniques[0].name == "LeiFx_Tech");
 	REQUIRE(effect.techniques[0].passes.size() == 6);
-	
+
+	fxlang::ShaderParser::ParseHLSL(parse.GetEffect().functions);
+
 	fxlang::EffectBuilder builder(parse.GetEffect());
 	auto code = builder.GenCode();
 	printf("%s\n", code.c_str());
 
-	fxlang::ShaderGenerator gen(parse.GetEffect());
-	glslang::TShader* shader = fxlang::ShaderParser::ParseHLSL(gen.ToHLSL());
-	REQUIRE(shader != nullptr);
-
-	auto root = shader->getIntermediate()->getTreeRoot();
-	glslang::TIntermAggregate* func_node = fxlang::ShaderInfo::GetFunctionByName("PS_3DFX1", *root);
-	REQUIRE(func_node != nullptr);
-
-	std::vector<fxlang::ShaderInfo::FunctionParameter> params;
-	fxlang::ShaderInfo::GetFunctionParameters(func_node, params);
-	REQUIRE(params.size() == 2);
-
-	delete shader;
 }

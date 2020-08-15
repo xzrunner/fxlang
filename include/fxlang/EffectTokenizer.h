@@ -39,16 +39,16 @@ namespace Token
 	static const Type Eol           = 1 << 23; // end of line
 }
 
-class Tokenizer : public lexer::Tokenizer<Token::Type>
+class EffectTokenizer : public lexer::Tokenizer<Token::Type>
 {
 public:
-    Tokenizer(const std::string& str);
+    EffectTokenizer(const std::string& str);
 
 protected:
     virtual Token EmitToken() override;
 
     static const std::string& NumberDelim();
 
-}; // Tokenizer
+}; // EffectTokenizer
 
 }
