@@ -145,7 +145,7 @@ EffectTokenizer::EmitToken()
 
 const std::string& EffectTokenizer::NumberDelim()
 {
-    static const std::string number_delim(Whitespace() + ")]};");
+    static const std::string number_delim(Whitespace() + ")]};,");
     return number_delim;
 }
 

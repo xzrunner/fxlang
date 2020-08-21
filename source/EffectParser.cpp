@@ -182,9 +182,13 @@ void EffectParser::ParseUniform()
         Expect(fxlang::Token::String, token = m_tokenizer.NextToken());
         assert(token.Data() == "float2");
         Expect(fxlang::Token::OParenthesis, token = m_tokenizer.NextToken());
-        for (int i = 0; i < 2; ++i) {
+        for (int i = 0, n = 2; i < n; ++i) 
+        {
             Expect(fxlang::Token::Decimal, token = m_tokenizer.NextToken());
             uniform.var.f2[i] = static_cast<float>(std::atof(token.Data().c_str()));
+            if (i != n - 1) {
+                Expect(fxlang::Token::Comma, token = m_tokenizer.NextToken());
+            }
         }
         Expect(fxlang::Token::CParenthesis, token = m_tokenizer.NextToken());
         break;
@@ -192,9 +196,13 @@ void EffectParser::ParseUniform()
         Expect(fxlang::Token::String, token = m_tokenizer.NextToken());
         assert(token.Data() == "float3");
         Expect(fxlang::Token::OParenthesis, token = m_tokenizer.NextToken());
-        for (int i = 0; i < 3; ++i) {
+        for (int i = 0, n = 3; i < n; ++i) 
+        {
             Expect(fxlang::Token::Decimal, token = m_tokenizer.NextToken());
             uniform.var.f3[i] = static_cast<float>(std::atof(token.Data().c_str()));
+            if (i != n - 1) {
+                Expect(fxlang::Token::Comma, token = m_tokenizer.NextToken());
+            }
         }
         Expect(fxlang::Token::CParenthesis, token = m_tokenizer.NextToken());
         break;
@@ -202,9 +210,13 @@ void EffectParser::ParseUniform()
         Expect(fxlang::Token::String, token = m_tokenizer.NextToken());
         assert(token.Data() == "float4");
         Expect(fxlang::Token::OParenthesis, token = m_tokenizer.NextToken());
-        for (int i = 0; i < 4; ++i) {
+        for (int i = 0, n = 4; i < n; ++i) 
+        {
             Expect(fxlang::Token::Decimal, token = m_tokenizer.NextToken());
             uniform.var.f4[i] = static_cast<float>(std::atof(token.Data().c_str()));
+            if (i != n - 1) {
+                Expect(fxlang::Token::Comma, token = m_tokenizer.NextToken());
+            }
         }
         Expect(fxlang::Token::CParenthesis, token = m_tokenizer.NextToken());
         break;
