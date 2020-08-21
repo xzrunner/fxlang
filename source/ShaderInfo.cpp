@@ -65,6 +65,136 @@ glslang_qualifier_to_func_param(glslang::TStorageQualifier q)
     }
 }
 
+std::string getIndexDirectStructString(const glslang::TIntermBinary& node)
+{
+    const glslang::TTypeList& structNode = *(node.getLeft()->getType().getStruct());
+    glslang::TIntermConstantUnion* index = node.getRight()->getAsConstantUnion();
+    return structNode[index->getConstArray()[0].getIConst()].type->getFieldName().c_str();
+}
+
+const char* op2Str(glslang::TOperator op)
+{
+    switch (op) {
+    case glslang::EOpAssign: return "EOpAssign";
+    case glslang::EOpAddAssign: return "EOpAddAssign";
+    case glslang::EOpSubAssign: return "EOpSubAssign";
+    case glslang::EOpMulAssign: return "EOpMulAssign";
+    case glslang::EOpDivAssign: return "EOpDivAssign";
+    case glslang::EOpVectorSwizzle: return "EOpVectorSwizzle";
+    case glslang::EOpIndexDirectStruct:return "EOpIndexDirectStruct";
+    case glslang::EOpFunction:return "EOpFunction";
+    case glslang::EOpFunctionCall:return "EOpFunctionCall";
+    case glslang::EOpParameters:return "EOpParameters";
+    default: return "???";
+    }
+}
+
+const glslang::TIntermTyped* findLValueBase(const glslang::TIntermTyped* node, fxlang::Symbol& symbol)
+{
+    do {
+        // Make sure we have a binary node
+        const glslang::TIntermBinary* binary = node->getAsBinaryNode();
+        if (binary == nullptr) {
+            return node;
+        }
+
+        // Check Operator
+        glslang::TOperator op = binary->getOp();
+        if (op != glslang::EOpIndexDirect && 
+            op != glslang::EOpIndexIndirect && 
+            op != glslang::EOpIndexDirectStruct && 
+            op != glslang::EOpVectorSwizzle && 
+            op != glslang::EOpMatrixSwizzle) 
+        {
+            return nullptr;
+        }
+        fxlang::Access access;
+        if (op == glslang::EOpIndexDirectStruct) {
+            access.string = getIndexDirectStructString(*binary);
+            access.type = fxlang::Access::DirectIndexForStruct;
+        } else {
+            access.string = op2Str(op) ;
+            access.type = fxlang::Access::Swizzling;
+        }
+        symbol.add(access);
+        node = node->getAsBinaryNode()->getLeft();
+    } while (true);
+}
+
+class SymbolsTracer : public glslang::TIntermTraverser 
+{
+public:
+    explicit SymbolsTracer(std::deque<fxlang::Symbol>& events) : mEvents(events) {
+    }
+
+    // Function call site.
+    bool visitAggregate(glslang::TVisit, glslang::TIntermAggregate* node) override {
+        if (node->getOp() != glslang::EOpFunctionCall) {
+            return true;
+        }
+
+        // Find function name.
+        std::string functionName = node->getName().c_str();
+
+        // Iterate on function parameters.
+        for (size_t parameterIdx = 0; parameterIdx < node->getSequence().size(); parameterIdx++) {
+            TIntermNode* parameter = node->getSequence().at(parameterIdx);
+            // Parameter is not a pure symbol. It is indexed or swizzled.
+            if (parameter->getAsBinaryNode()) {
+                fxlang::Symbol symbol;
+                std::vector<fxlang::Symbol> events;
+                const glslang::TIntermTyped* n = findLValueBase(parameter->getAsBinaryNode(), symbol);
+                if (n != nullptr && n->getAsSymbolNode() != nullptr) {
+                    const glslang::TString& symbolTString = n->getAsSymbolNode()->getName();
+                    symbol.setName(symbolTString.c_str());
+                    events.push_back(symbol);
+                }
+
+                for (fxlang::Symbol symbol: events) {
+                    fxlang::Access fCall = { fxlang::Access::FunctionCall, functionName, parameterIdx};
+                    symbol.add(fCall);
+                    mEvents.push_back(symbol);
+                }
+
+            }
+            // Parameter is a pure symbol.
+            if (parameter->getAsSymbolNode()) {
+                fxlang::Symbol s(parameter->getAsSymbolNode()->getName().c_str());
+                fxlang::Access fCall = { fxlang::Access::FunctionCall, functionName, parameterIdx};
+                s.add(fCall);
+                mEvents.push_back(s);
+            }
+        }
+
+        return true;
+    }
+
+    // Assign operations
+    bool visitBinary(glslang::TVisit, glslang::TIntermBinary* node) override 
+    {
+        glslang::TOperator op = node->getOp();
+        fxlang::Symbol symbol;
+        if (op == glslang::EOpAssign || 
+            op == glslang::EOpAddAssign || 
+            op == glslang::EOpDivAssign || 
+            op == glslang::EOpSubAssign || 
+            op == glslang::EOpMulAssign) 
+        {
+            const glslang::TIntermTyped* n = findLValueBase(node->getLeft(), symbol);
+            if (n != nullptr && n->getAsSymbolNode() != nullptr) {
+                const glslang::TString& symbolTString = n->getAsSymbolNode()->getName();
+                symbol.setName(symbolTString.c_str());
+                mEvents.push_back(symbol);
+                return false; // Don't visit subtree since we just traced it with findLValueBase()
+            }
+        }
+        return true;
+    }
+
+private:
+    std::deque<fxlang::Symbol>& mEvents;
+};
+
 }
 
 namespace fxlang
@@ -101,6 +231,26 @@ void ShaderInfo::GetFunctionParameters(glslang::TIntermAggregate* func, std::vec
         };
         output.push_back(p);
     }
+}
+
+bool ShaderInfo::FindSymbolsUsage(const std::string& func_sign, TIntermNode& root, 
+                                  std::deque<fxlang::Symbol>& symbols) noexcept
+{
+    //TIntermNode* functionAST = GetFunctionBySignature(func_sign, root);
+    TIntermNode* functionAST = GetFunctionByName(func_sign, root);
+
+    SymbolsTracer variableTracer(symbols);
+    functionAST->traverse(&variableTracer);
+
+    return true;
+}
+
+glslang::TIntermAggregate*
+ShaderInfo::GetFunctionBySignature(const std::string& sign, TIntermNode& root) noexcept
+{
+    FunctionDefinitionFinder functionDefinitionFinder(sign);
+    root.traverse(&functionDefinitionFinder);
+    return functionDefinitionFinder.getFunctionDefinitionNode();
 }
 
 }
