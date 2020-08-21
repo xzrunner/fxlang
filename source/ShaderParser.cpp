@@ -154,8 +154,7 @@ glslang::TShader* ShaderParser::ParseHLSL(const std::string& glsl)
     const char* src_cstr = glsl.c_str();
     shader->setStrings(&src_cstr, 1);
 
-    //shader->setEnvTargetHlslFunctionality1();
-    //shader->setHlslIoMapping(true);
+    //shader->setEnvTargetHlslFunctionality1();//shader->setHlslIoMapping(true);
     
     int client_input_semantics_version = 100; // maps to, say, #define VULKAN 100
     glslang::EShTargetClientVersion VulkanClientVersion = glslang::EShTargetVulkan_1_0;
