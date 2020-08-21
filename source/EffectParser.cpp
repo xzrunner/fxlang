@@ -412,10 +412,16 @@ void EffectParser::ParsePass(Technique& tech)
     Expect(fxlang::Token::String, token = m_tokenizer.NextToken());
     assert(token.Data() == "pass");
 
-    Expect(fxlang::Token::String, token = m_tokenizer.NextToken());
-    pass.name = token.Data();
-
-    Expect(fxlang::Token::OBrace, token = m_tokenizer.NextToken());
+    token = m_tokenizer.NextToken();
+    if (token.GetType() == fxlang::Token::String) {
+        pass.name = token.Data();
+        Expect(fxlang::Token::OBrace, token = m_tokenizer.NextToken());
+    } else {
+        assert(token.GetType() == fxlang::Token::OBrace);
+        if (token.GetType() != fxlang::Token::OBrace) {
+            throw std::runtime_error("Expect OBrace!");
+        }
+    }    
     while (m_tokenizer.PeekToken().GetType() != fxlang::Token::CBrace) 
     {
         Expect(fxlang::Token::String, token = m_tokenizer.NextToken());
