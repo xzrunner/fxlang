@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\include\fxlang\Effect.h" />
+    <ClInclude Include="..\..\..\include\fxlang\EffectType.h" />
     <ClInclude Include="..\..\..\include\fxlang\FXLang.h" />
     <ClInclude Include="..\..\..\include\fxlang\EffectBuilder.h" />
     <ClInclude Include="..\..\..\include\fxlang\ShaderGenerator.h" />

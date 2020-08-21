@@ -5,10 +5,12 @@
 namespace fxlang
 {
 
-EffectParser::EffectParser(const std::string& str)
+EffectParser::EffectParser(const std::string& str, EffectType type)
     : m_tokenizer(EffectTokenizer(str))
 {
     m_func_last_pos = m_tokenizer.Begin();
+
+    m_effect.type = type;
 }
 
 void EffectParser::Parse()

@@ -12,7 +12,7 @@ namespace fxlang
 class EffectParser : public lexer::Parser<fxlang::Token::Type>
 {
 public:
-    EffectParser(const std::string& str);
+    EffectParser(const std::string& str, EffectType type);
 
     void Parse();
 

@@ -85,5 +85,8 @@
     <ClInclude Include="..\..\..\include\fxlang\ShaderInfo.h">
       <Filter>parser\shader</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\include\fxlang\EffectType.h">
+      <Filter>dataset</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
