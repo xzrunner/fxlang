@@ -121,6 +121,16 @@ void EffectParser::ParseUniform()
                 }
                 uniform.ui_max = static_cast<float>(std::atof(token.Data().c_str()));
             }
+            else if (prop == "ui_step")
+            {
+                Expect(fxlang::Token::Equal, token = m_tokenizer.NextToken());
+                token = m_tokenizer.NextToken();
+                if (!Check(fxlang::Token::Integer, token) && !Check(fxlang::Token::Decimal, token)) {
+                    assert(0);
+                    throw lexer::ParserException(token.Line(), token.Column(), "number");
+                }
+                uniform.ui_step = static_cast<float>(std::atof(token.Data().c_str()));
+            }
             else if (prop == "ui_items") 
             {
                 Expect(fxlang::Token::Equal, token = m_tokenizer.NextToken());
@@ -139,7 +149,7 @@ void EffectParser::ParseUniform()
                 Expect(fxlang::Token::String, token = m_tokenizer.NextToken());
                 uniform.ui_tooltip = token.Data();
             }
-            else if (prop == "ui_step" || prop == "ui_label" || prop == "ui_category "
+            else if (prop == "ui_label" || prop == "ui_category "
                   || prop == "ui_category_closed " || prop == "ui_spacing ")
             {
                 assert(0);
