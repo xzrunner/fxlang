@@ -20,6 +20,8 @@ std::string EffectBuilder::GenCode() const
 	ss << "\n";
 	GenUniforms(ss);
 	ss << "\n";
+	ss << m_effect.functions;
+	ss << "\n";
 	GenTechniques(ss);
 
 	return ss.str();
