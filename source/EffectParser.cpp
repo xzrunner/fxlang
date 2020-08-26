@@ -170,63 +170,95 @@ void EffectParser::ParseUniform()
         token = m_tokenizer.NextToken(); // skip CAngleBracket
     }
 
-    Expect(fxlang::Token::Equal, token = m_tokenizer.NextToken());
-
-    switch (uniform.var.type)
+    // assign
+    if (m_tokenizer.PeekToken().GetType() == fxlang::Token::Equal)
     {
-    case VariableType::Int:
-        Expect(fxlang::Token::Integer, token = m_tokenizer.NextToken());
-        uniform.var.i = std::atoi(token.Data().c_str());
-        break;
-    case VariableType::Bool:
-        uniform.var.b = ParseBool();
-        break;
-    case VariableType::Float:
-        Expect(fxlang::Token::Decimal, token = m_tokenizer.NextToken());
-        uniform.var.f = static_cast<float>(std::atof(token.Data().c_str()));
-        break;
-    case VariableType::Float2:
-        Expect(fxlang::Token::String, token = m_tokenizer.NextToken());
-        assert(token.Data() == "float2");
-        Expect(fxlang::Token::OParenthesis, token = m_tokenizer.NextToken());
-        for (int i = 0, n = 2; i < n; ++i) 
+        // skip =
+        m_tokenizer.NextToken();
+
+        switch (uniform.var.type)
         {
+        case VariableType::Int:
+            Expect(fxlang::Token::Integer, token = m_tokenizer.NextToken());
+            uniform.var.i = std::atoi(token.Data().c_str());
+            break;
+        case VariableType::Bool:
+            uniform.var.b = ParseBool();
+            break;
+        case VariableType::Float:
             Expect(fxlang::Token::Decimal, token = m_tokenizer.NextToken());
-            uniform.var.f2[i] = static_cast<float>(std::atof(token.Data().c_str()));
-            if (i != n - 1) {
-                Expect(fxlang::Token::Comma, token = m_tokenizer.NextToken());
+            uniform.var.f = static_cast<float>(std::atof(token.Data().c_str()));
+            break;
+        case VariableType::Float2:
+            if (m_tokenizer.PeekToken().GetType() == fxlang::Token::Decimal)
+            {
+                token = m_tokenizer.NextToken();
+                float f = static_cast<float>(std::atof(token.Data().c_str()));
+                uniform.var.f2[0] = uniform.var.f2[1] = f;
             }
-        }
-        Expect(fxlang::Token::CParenthesis, token = m_tokenizer.NextToken());
-        break;
-    case VariableType::Float3:
-        Expect(fxlang::Token::String, token = m_tokenizer.NextToken());
-        assert(token.Data() == "float3");
-        Expect(fxlang::Token::OParenthesis, token = m_tokenizer.NextToken());
-        for (int i = 0, n = 3; i < n; ++i) 
-        {
-            Expect(fxlang::Token::Decimal, token = m_tokenizer.NextToken());
-            uniform.var.f3[i] = static_cast<float>(std::atof(token.Data().c_str()));
-            if (i != n - 1) {
-                Expect(fxlang::Token::Comma, token = m_tokenizer.NextToken());
+            else
+            {
+                Expect(fxlang::Token::String, token = m_tokenizer.NextToken());
+                assert(token.Data() == "float2");
+                Expect(fxlang::Token::OParenthesis, token = m_tokenizer.NextToken());
+                for (int i = 0, n = 2; i < n; ++i)
+                {
+                    Expect(fxlang::Token::Decimal, token = m_tokenizer.NextToken());
+                    uniform.var.f2[i] = static_cast<float>(std::atof(token.Data().c_str()));
+                    if (i != n - 1) {
+                        Expect(fxlang::Token::Comma, token = m_tokenizer.NextToken());
+                    }
+                }
+                Expect(fxlang::Token::CParenthesis, token = m_tokenizer.NextToken());
             }
-        }
-        Expect(fxlang::Token::CParenthesis, token = m_tokenizer.NextToken());
-        break;
-    case VariableType::Float4:
-        Expect(fxlang::Token::String, token = m_tokenizer.NextToken());
-        assert(token.Data() == "float4");
-        Expect(fxlang::Token::OParenthesis, token = m_tokenizer.NextToken());
-        for (int i = 0, n = 4; i < n; ++i) 
-        {
-            Expect(fxlang::Token::Decimal, token = m_tokenizer.NextToken());
-            uniform.var.f4[i] = static_cast<float>(std::atof(token.Data().c_str()));
-            if (i != n - 1) {
-                Expect(fxlang::Token::Comma, token = m_tokenizer.NextToken());
+            break;
+        case VariableType::Float3:
+            if (m_tokenizer.PeekToken().GetType() == fxlang::Token::Decimal)
+            {
+                token = m_tokenizer.NextToken();
+                float f = static_cast<float>(std::atof(token.Data().c_str()));
+                uniform.var.f3[0] = uniform.var.f3[1] = uniform.var.f3[2] = f;
             }
+            else
+            {
+                Expect(fxlang::Token::String, token = m_tokenizer.NextToken());
+                assert(token.Data() == "float3");
+                Expect(fxlang::Token::OParenthesis, token = m_tokenizer.NextToken());
+                for (int i = 0, n = 3; i < n; ++i) 
+                {
+                    Expect(fxlang::Token::Decimal, token = m_tokenizer.NextToken());
+                    uniform.var.f3[i] = static_cast<float>(std::atof(token.Data().c_str()));
+                    if (i != n - 1) {
+                        Expect(fxlang::Token::Comma, token = m_tokenizer.NextToken());
+                    }
+                }
+                Expect(fxlang::Token::CParenthesis, token = m_tokenizer.NextToken());
+            }
+            break;
+        case VariableType::Float4:
+            if (m_tokenizer.PeekToken().GetType() == fxlang::Token::Decimal)
+            {
+                token = m_tokenizer.NextToken();
+                float f = static_cast<float>(std::atof(token.Data().c_str()));
+                uniform.var.f4[0] = uniform.var.f4[1] = uniform.var.f4[2] = uniform.var.f4[3] = f;
+            }
+            else
+            {
+                Expect(fxlang::Token::String, token = m_tokenizer.NextToken());
+                assert(token.Data() == "float4");
+                Expect(fxlang::Token::OParenthesis, token = m_tokenizer.NextToken());
+                for (int i = 0, n = 4; i < n; ++i) 
+                {
+                    Expect(fxlang::Token::Decimal, token = m_tokenizer.NextToken());
+                    uniform.var.f4[i] = static_cast<float>(std::atof(token.Data().c_str()));
+                    if (i != n - 1) {
+                        Expect(fxlang::Token::Comma, token = m_tokenizer.NextToken());
+                    }
+                }
+                Expect(fxlang::Token::CParenthesis, token = m_tokenizer.NextToken());
+            }
+            break;
         }
-        Expect(fxlang::Token::CParenthesis, token = m_tokenizer.NextToken());
-        break;
     }
 
     m_effect.uniforms.push_back(uniform);
