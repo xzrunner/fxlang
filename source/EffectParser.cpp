@@ -157,6 +157,11 @@ void EffectParser::ParseUniform()
                 assert(0);
                 throw std::runtime_error("Unknown type!");
             }
+            else if (prop == "source")
+            {
+                Expect(fxlang::Token::Equal, token = m_tokenizer.NextToken());
+                Expect(fxlang::Token::String, token = m_tokenizer.NextToken());
+            }
             else
             {
                 // skip __UNIFORM_SLIDER_FLOAT1
