@@ -1,6 +1,7 @@
 #include "fxlang/EffectParser.h"
 
 #include <exception>
+#include <algorithm>
 
 namespace fxlang
 {
@@ -95,6 +96,7 @@ void EffectParser::ParseUniform()
         {
             Expect(fxlang::Token::String, token = m_tokenizer.NextToken());
             auto prop = token.Data();
+            std::transform(prop.begin(), prop.end(), prop.begin(), tolower);
             if (prop == "ui_type") 
             {
                 Expect(fxlang::Token::Equal, token = m_tokenizer.NextToken());
