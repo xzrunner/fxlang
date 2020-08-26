@@ -122,7 +122,7 @@ VS_OUTPUT main(float3 pos : POSITION, float2 texcoord : TEXCOORD)
 		Texture2D BackBufferTex : register(t0);
 		//Texture2D DepthBufferTex : register(t1);
 
-		uniform sampler BackBuffer : register(s0);
+		sampler BackBuffer : register(s0);
 		//sampler2D DepthBuffer : register(s1);
 	//}
 	)";
