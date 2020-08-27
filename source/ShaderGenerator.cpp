@@ -1,7 +1,8 @@
 #include "fxlang/ShaderGenerator.h"
 #include "fxlang/Effect.h"
-#include "fxlang/ShaderInfo.h"
-#include "fxlang/ShaderParser.h"
+
+#include <shadertrans/ShaderParser.h>
+#include <shadertrans/ShaderInfo.h>
 
 #include <rttr/registration>
 #include <glslang/public/ShaderLang.h>
@@ -146,13 +147,13 @@ return vertex_output;
 
 	fs += funcs;
 
-	glslang::TShader* shader = fxlang::ShaderParser::ParseHLSL(fs);
+	glslang::TShader* shader = shadertrans::ShaderParser::ParseHLSL(fs);
 	if (!shader) {
 		return;
 	}
 	assert(shader != nullptr);
 	auto root = shader->getIntermediate()->getTreeRoot();
-	auto shader_func = ShaderInfo::GetFunctionByName(pass.pixel_shader, *root);
+	auto shader_func = shadertrans::ShaderInfo::GetFunctionByName(pass.pixel_shader, *root);
 	assert(shader_func->getBasicType() == glslang::EbtFloat);
 	int ret_vector_n = shader_func->getVectorSize();
 	assert(ret_vector_n == 3 || ret_vector_n == 4);

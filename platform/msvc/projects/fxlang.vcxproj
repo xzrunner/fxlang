@@ -18,8 +18,6 @@
     <ClInclude Include="..\..\..\include\fxlang\ShaderGenerator.h" />
     <ClInclude Include="..\..\..\include\fxlang\EffectParser.h" />
     <ClInclude Include="..\..\..\include\fxlang\Sampler.h" />
-    <ClInclude Include="..\..\..\include\fxlang\ShaderInfo.h" />
-    <ClInclude Include="..\..\..\include\fxlang\ShaderParser.h" />
     <ClInclude Include="..\..\..\include\fxlang\Technique.h" />
     <ClInclude Include="..\..\..\include\fxlang\Texture.h" />
     <ClInclude Include="..\..\..\include\fxlang\EffectTokenizer.h" />
@@ -34,8 +32,6 @@
     <ClCompile Include="..\..\..\source\EffectParser.cpp" />
     <ClCompile Include="..\..\..\source\RegistRTTR.cpp" />
     <ClCompile Include="..\..\..\source\EffectTokenizer.cpp" />
-    <ClCompile Include="..\..\..\source\ShaderInfo.cpp" />
-    <ClCompile Include="..\..\..\source\ShaderParser.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectName>fxlang</ProjectName>
@@ -80,7 +76,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\..\cu\src;..\..\..\..\guard\include;..\..\..\..\lexer\include;..\..\..\..\external\rttr\include;..\..\..\..\external\glslang\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\..\cu\src;..\..\..\..\guard\include;..\..\..\..\lexer\include;..\..\..\..\shadertrans\include;..\..\..\..\external\rttr\include;..\..\..\..\external\glslang\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -94,7 +90,7 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\..\cu\src;..\..\..\..\guard\include;..\..\..\..\lexer\include;..\..\..\..\external\rttr\include;..\..\..\..\external\glslang\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\..\cu\src;..\..\..\..\guard\include;..\..\..\..\lexer\include;..\..\..\..\shadertrans\include;..\..\..\..\external\rttr\include;..\..\..\..\external\glslang\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
