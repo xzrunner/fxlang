@@ -103,7 +103,7 @@ void EffectParser::ParseUniform()
                 Expect(fxlang::Token::String, token = m_tokenizer.NextToken());
                 uniform.ui_type = token.Data();
             } 
-            else if (prop == "ui_min")
+            else if (prop == "ui_min" || prop == "min")
             {
                 Expect(fxlang::Token::Equal, token = m_tokenizer.NextToken());
                 token = m_tokenizer.NextToken();
@@ -113,7 +113,7 @@ void EffectParser::ParseUniform()
                 }
                 uniform.ui_min = static_cast<float>(std::atof(token.Data().c_str()));
             }
-            else if (prop == "ui_max")
+            else if (prop == "ui_max" || prop == "max")
             {
                 Expect(fxlang::Token::Equal, token = m_tokenizer.NextToken());
                 token = m_tokenizer.NextToken();
@@ -150,6 +150,11 @@ void EffectParser::ParseUniform()
                 Expect(fxlang::Token::Equal, token = m_tokenizer.NextToken());
                 Expect(fxlang::Token::String, token = m_tokenizer.NextToken());
                 uniform.ui_tooltip = token.Data();
+            }
+            else if (prop == "ui_category")
+            {
+                Expect(fxlang::Token::Equal, token = m_tokenizer.NextToken());
+                Expect(fxlang::Token::String, token = m_tokenizer.NextToken());
             }
             else if (prop == "ui_label" || prop == "ui_category "
                   || prop == "ui_category_closed " || prop == "ui_spacing ")
