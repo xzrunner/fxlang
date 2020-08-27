@@ -4,7 +4,7 @@
 
 #include <iostream>
 
-namespace glsl
+namespace
 {
 
 const TBuiltInResource DefaultTBuiltInResource = {
@@ -143,10 +143,10 @@ glslang::TShader* ShaderParser::ParseHLSL(const std::string& glsl)
 {
     std::vector<unsigned int> spirv;
 
-    if (!glsl::glslang_inited)
+    if (!glslang_inited)
     {
         glslang::InitializeProcess();
-        glsl::glslang_inited = true;
+        glslang_inited = true;
     }
 
     const EShLanguage shader_type = EShLanguage::EShLangFragment;
@@ -170,7 +170,7 @@ glslang::TShader* ShaderParser::ParseHLSL(const std::string& glsl)
     shader->setAutoMapBindings(true);
 
     TBuiltInResource resources;
-    resources = glsl::DefaultTBuiltInResource;
+    resources = DefaultTBuiltInResource;
     EShMessages messages = (EShMessages)(EShMsgSpvRules | EShMsgVulkanRules);
 
     glslang::TShader::ForbidIncluder forbid_includer;
