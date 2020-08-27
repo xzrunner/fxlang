@@ -1,7 +1,11 @@
 #include "fxlang/ShaderGenerator.h"
 #include "fxlang/Effect.h"
+#include "fxlang/ShaderInfo.h"
+#include "fxlang/ShaderParser.h"
 
 #include <rttr/registration>
+#include <glslang/public/ShaderLang.h>
+#include <glslang/MachineIndependent/localintermediate.h>
 
 #include <assert.h>
 #include <stdarg.h>
@@ -63,7 +67,6 @@ void ShaderGenerator::Gen(std::string& vs, std::string& fs,
 {
 	assert(tech_idx == 0 && pass_idx == 0);
 	auto& pass = m_effect.techniques[tech_idx].passes[pass_idx];
-
 	switch (m_effect.type)
 	{
 	case EffectType::Default:
@@ -71,80 +74,108 @@ void ShaderGenerator::Gen(std::string& vs, std::string& fs,
 	case EffectType::DX_CG:
 		break;
 	case EffectType::Reshade:
-	{
-		assert(pass.vertex_shader == "PostProcessVS");
-		vs = R"(
+		GenReshade(pass, vs, fs);
+		break;
+	}
+}
+
+void ShaderGenerator::GenReshade(const Pass& pass, std::string& vs, std::string& fs) const
+{
+	assert(pass.vertex_shader == "PostProcessVS");
+	vs = R"(
 struct VS_OUTPUT
 {
-    float4 pos : SV_POSITION;
-    float2 texcoord : TEXCOORD;
+float4 pos : SV_POSITION;
+float2 texcoord : TEXCOORD;
 };
 
 // Vertex shader generating a triangle covering the entire screen
 void PostProcessVS(in uint id : SV_VertexID, out float4 position : SV_Position, out float2 texcoord : TEXCOORD)
 {
-	texcoord.x = (id == 2) ? 2.0 : 0.0;
-	texcoord.y = (id == 1) ? 2.0 : 0.0;
-	position = float4(texcoord * float2(2.0, -2.0) + float2(-1.0, 1.0), 0.0, 1.0);
+texcoord.x = (id == 2) ? 2.0 : 0.0;
+texcoord.y = (id == 1) ? 2.0 : 0.0;
+position = float4(texcoord * float2(2.0, -2.0) + float2(-1.0, 1.0), 0.0, 1.0);
 }
 
 VS_OUTPUT main(float3 pos : POSITION, float2 texcoord : TEXCOORD)
 {
-    VS_OUTPUT vertex_output;
+VS_OUTPUT vertex_output;
 
-	//PostProcessVS(0, vertex_output.pos, vertex_output.texcoord);
+//PostProcessVS(0, vertex_output.pos, vertex_output.texcoord);
 
-	vertex_output.pos = float4(pos, 1.0);
-	vertex_output.texcoord = texcoord;
+vertex_output.pos = float4(pos, 1.0);
+vertex_output.texcoord = texcoord;
 
-	return vertex_output;
+return vertex_output;
 }
 )";
 
-		auto funcs = m_effect.functions;
-		//str_replace(funcs, "ReShade::BackBuffer", "BackBuffer");
-		str_replace(funcs, "tex2D(ReShade::BackBuffer", "BackBufferTex.Sample(BackBuffer");
+	auto funcs = m_effect.functions;
+	str_replace(funcs, "tex2D(ReShade::BackBuffer", "BackBufferTex.Sample(BackBuffer");
+	str_replace(funcs, "ReShade::", "");
+	str_replace(funcs, "sampler2D", "sampler");
+	str_replace(funcs, "tex2D(samp", "BackBufferTex.Sample(samp");
 
-		fs = R"(
-	#define BUFFER_WIDTH 800
-	#define BUFFER_HEIGHT 600
+	fs = R"(#define BUFFER_WIDTH 800
+#define BUFFER_HEIGHT 600
 
-	#define BUFFER_RCP_WIDTH (1.0/BUFFER_WIDTH)
-	#define BUFFER_RCP_HEIGHT (1.0/BUFFER_HEIGHT)
+#define BUFFER_RCP_WIDTH (1.0/BUFFER_WIDTH)
+#define BUFFER_RCP_HEIGHT (1.0/BUFFER_HEIGHT)
 
-	#define BUFFER_PIXEL_SIZE float2(BUFFER_RCP_WIDTH, BUFFER_RCP_HEIGHT)
-	#define BUFFER_SCREEN_SIZE float2(BUFFER_WIDTH, BUFFER_HEIGHT)
-	#define BUFFER_ASPECT_RATIO (BUFFER_WIDTH * BUFFER_RCP_HEIGHT)
+#define BUFFER_PIXEL_SIZE float2(BUFFER_RCP_WIDTH, BUFFER_RCP_HEIGHT)
+#define BUFFER_SCREEN_SIZE float2(BUFFER_WIDTH, BUFFER_HEIGHT)
+#define BUFFER_ASPECT_RATIO (BUFFER_WIDTH * BUFFER_RCP_HEIGHT)
 
-	//namespace ReShade
-	//{
-		// Global textures and samplers
-		Texture2D BackBufferTex : register(t0);
-		//Texture2D DepthBufferTex : register(t1);
+//namespace ReShade
+//{
+	// Global textures and samplers
+	Texture2D BackBufferTex : register(t0);
+	//Texture2D DepthBufferTex : register(t1);
 
-		sampler BackBuffer : register(s0);
-		//sampler2D DepthBuffer : register(s1);
-	//}
-	)";
+	sampler BackBuffer : register(s0);
+	//sampler2D DepthBuffer : register(s1);
+//}
+)";
 
-		auto type_enum = rttr::type::get<VariableType>().get_enumeration();
-		for (auto& unif : m_effect.uniforms)
-		{
-			std::string type_str = VarTypeToString(unif.var.type, false);
-			fs += "uniform " + type_str + " " + unif.var.name + ";\n";
-		}
+	auto type_enum = rttr::type::get<VariableType>().get_enumeration();
+	for (auto& unif : m_effect.uniforms)
+	{
+		std::string type_str = VarTypeToString(unif.var.type, false);
+		fs += "uniform " + type_str + " " + unif.var.name + ";\n";
+	}
 
-		fs += funcs;
+	fs += funcs;
 
-		fs += str_format(R"(
+	glslang::TShader* shader = fxlang::ShaderParser::ParseHLSL(fs);
+	if (!shader) {
+		return;
+	}
+	assert(shader != nullptr);
+	auto root = shader->getIntermediate()->getTreeRoot();
+	auto shader_func = ShaderInfo::GetFunctionByName(pass.pixel_shader, *root);
+	assert(shader_func->getBasicType() == glslang::EbtFloat);
+	int ret_vector_n = shader_func->getVectorSize();
+	assert(ret_vector_n == 3 || ret_vector_n == 4);
+
+	std::string main_ret;
+	switch (ret_vector_n)
+	{
+	case 3:
+		main_ret = str_format("return float4(%s(pos, texcoord), 1.0);", pass.pixel_shader.c_str());
+		break;
+	case 4:
+		main_ret = str_format("return %s(pos, texcoord);", pass.pixel_shader.c_str());
+		break;
+	default:
+		assert(0);
+	}
+
+	fs += str_format(R"(
 float4 main(float4 pos : SV_POSITION, float2 texcoord : TEXCOORD) : SV_TARGET
 {
-	return float4(%s(pos, texcoord), 1.0);
+	%s;
 }
-)", pass.pixel_shader.c_str());
-	}
-		break;
-	}
+)", main_ret.c_str());
 }
 
 std::string ShaderGenerator::VarTypeToString(VariableType type, bool glsl)
